@@ -61,7 +61,7 @@
     /* ===== Layout grid (2 rows x 4 cols) ===== */
     .grid{
     display:grid;
-    grid-template-columns: 1.35fr repeat(3, .65fr);
+    grid-template-columns: .80fr repeat(3, .8fr);
     width:100%;
     }
 
@@ -86,14 +86,22 @@
 
     /* Modern A/B identity: subtle tint + left bar */
     .teamRowA{
-    background: linear-gradient(180deg, rgba(95,179,162,.12), rgba(255,255,255,.86));
+      background: linear-gradient(
+        90deg,
+        rgba(247, 183, 196, 0.35),   /* 粉紅主色 */
+        rgba(255, 255, 255, 0.95)
+      );
     }
     .teamRowB{
-    background: linear-gradient(180deg, rgba(155,143,191,.12), rgba(255,255,255,.86));
+      background: linear-gradient(
+        90deg,
+        rgba(247, 230, 170, 0.40),   /* 鵝黃色主色 */
+        rgba(255, 255, 255, 0.95)
+      );
     }
 
     /* Left vertical bar */
-    .teamRowA::before,
+    /* .teamRowA::before,
     .teamRowB::before{
     content:"";
     position:absolute;
@@ -104,7 +112,7 @@
     border-radius: 6px;
     }
     .teamRowA::before{ background: var(--a); }
-    .teamRowB::before{ background: var(--b); }
+    .teamRowB::before{ background: var(--b); } */
 
     .teamLeft{
     display:flex;
