@@ -368,12 +368,28 @@
 </div>
 
 <script>
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyA4nfnsIBGLua60tZDVpWoKQKlY1BDjuvU",
+    authDomain: "badminton-scoreboard-898a5.firebaseapp.com",
+    databaseURL: "https://badminton-scoreboard-898a5-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "badminton-scoreboard-898a5",
+    storageBucket: "badminton-scoreboard-898a5.firebasestorage.app",
+    messagingSenderId: "1049093037710",
+    appId: "1:1049093037710:web:b2f33852920a4892eef3df",
+    measurementId: "G-HFQG0FBYH6"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
   const qs = new URLSearchParams(location.search);
   const matchId = (qs.get('match') || 'default').trim();
   const view = (qs.get('view') || 'control').trim().toLowerCase();
   const displayOnly = (view === 'display');
 
   const STORAGE_KEY = `badminton-bar:${matchId}`;
+  const ROOM_KEY = `matches/${matchId}`;     // Firebase 路徑
+  const roomRef = ref(db, ROOM_KEY);
 
   const el = (id) => document.getElementById(id);
 
@@ -406,9 +422,18 @@
     }
   }
 
-  function save(){
+  async function save(){
     state.updatedAt = Date.now();
+
+    // 本機備援
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+    // 雲端同步（失敗也沒關係）
+    try{
+      await set(roomRef, state);
+    }catch(err){
+      console.warn("Firebase save failed:", err);
+    }
   }
 
   function fmt(v){
@@ -416,6 +441,16 @@
   }
 
   function render(){
+    onValue(roomRef, (snap) => {
+      const remote = snap.val();
+      if (!remote) return;
+
+      // 只在遠端比較新時套用（避免本機剛寫入又被舊資料蓋回）
+      if (!state.updatedAt || (remote.updatedAt && remote.updatedAt >= state.updatedAt)) {
+        state = { ...defaultState(), ...remote };
+        render();
+      }
+    });
     el('title').value = state.title;
     el('nameA').value = state.nameA;
     el('nameB').value = state.nameB;
