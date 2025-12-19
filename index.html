@@ -100,19 +100,36 @@
       );
     }
 
-    /* Left vertical bar */
-    /* .teamRowA::before,
-    .teamRowB::before{
-    content:"";
-    position:absolute;
-    left:0;
-    top:12%;
-    bottom:12%;
-    width:6px;
-    border-radius: 6px;
+    /* ===== Display 模式：直播自適應 ===== */
+    body.displayOnly{
+      padding: 0 !important;
     }
-    .teamRowA::before{ background: var(--a); }
-    .teamRowB::before{ background: var(--b); } */
+
+    body.displayOnly .wrap{
+      width: fit-content;
+      transform: scale(var(--scale, 1));
+      transform-origin: top left;
+    }
+
+    /* 解鎖高度 */
+    body.displayOnly .cell{
+      min-height: unset !important;
+      padding: 8px 10px;
+    }
+
+    /* 字體跟著縮 */
+    body.displayOnly .teamName{
+      font-size: clamp(18px, 3vw, 26px);
+    }
+    body.displayOnly .score{
+      font-size: clamp(28px, 6vw, 58px);
+    }
+
+    /* 不同畫面大小的縮放 */
+    @media (max-width: 900px){ body.displayOnly .wrap{ --scale: .85; } }
+    @media (max-width: 700px){ body.displayOnly .wrap{ --scale: .7; } }
+    @media (max-width: 500px){ body.displayOnly .wrap{ --scale: .55; } }
+
 
     .teamLeft{
     display:flex;
