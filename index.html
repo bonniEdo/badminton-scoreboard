@@ -78,38 +78,23 @@
 
     /* ===== Team cells (left column) ===== */
     .teamCell{
-    justify-content:space-between;
-    gap:14px;
-    background: rgba(255,255,255,.86);
-    position: relative;
+    justify-content:flex-start !important;
     }
 
     /* Modern A/B identity: subtle tint + left bar */
-    .teamRowA{
-      background: linear-gradient(
-        90deg,
-        rgba(247, 183, 196, 0.35),   /* 粉紅主色 */
-        rgba(255, 255, 255, 0.95)
-      );
-    }
+    .teamRowA,
     .teamRowB{
-      background: linear-gradient(
-        90deg,
-        rgba(247, 230, 170, 0.40),   /* 鵝黃色主色 */
-        rgba(255, 255, 255, 0.95)
-      );
+      background: transparent !important;
     }
-
+    .teamRowA::before,
+    .teamRowB::before{
+      display: none !important;
+    }
     /* ===== Display 模式：直播自適應 ===== */
     body.displayOnly{
       padding: 0 !important;
     }
 
-    body.displayOnly .wrap{
-      width: fit-content;
-      transform: scale(var(--scale, 1));
-      transform-origin: top left;
-    }
 
     /* 解鎖高度 */
     body.displayOnly .cell{
@@ -132,11 +117,26 @@
 
 
     .teamLeft{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    min-width: 0;
-    flex:1;
+    flex: 0 0 auto !important;
+    width: fit-content !important;
+  }
+
+    /* A：粉紅 */
+    .teamRowA .teamLeft{
+      background: linear-gradient(
+        90deg,
+        rgba(247,183,196,.45),
+        rgba(255,255,255,.88)
+      );
+    }
+
+    /* B：鵝黃 */
+    .teamRowB .teamLeft{
+      background: linear-gradient(
+        90deg,
+        rgba(247,230,170,.50),
+        rgba(255,255,255,.88)
+      );
     }
 
     /* If you still have .teamTag in HTML, keep it visually quiet */
@@ -151,7 +151,7 @@
 
     /* ===== Team name: looks like text, still editable ===== */
     .teamName{
-    flex:1;
+    flex:0 0 auto !important;
     min-width: 0;
     width: auto;
     border: none;
