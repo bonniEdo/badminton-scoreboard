@@ -60,9 +60,9 @@
 
     /* ===== Layout grid (2 rows x 4 cols) ===== */
     .grid{
-    display:grid;
-    grid-template-columns: .80fr repeat(3, .8fr);
-    width:100%;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      width: 100%;
     }
 
     .cell{
@@ -89,16 +89,6 @@
     .teamRowA::before,
     .teamRowB::before{
       display: none !important;
-    }
-    /* ===== Display 模式：直播自適應 ===== */
-    body.displayOnly{
-      padding: 0 !important;
-      margin: 0 !important;
-      background: transparent !important;
-
-      /* ❗ 關鍵：不要撐高 body */
-      align-items: flex-start !important;
-      justify-content: flex-start !important;
     }
 
 
@@ -319,9 +309,9 @@
     body.displayOnly{
       padding: 0 !important;
       margin: 0 !important;
-      background: transparent !important;   /* 如果你想要透明疊在畫面上 */
-      align-items: stretch !important;
-      justify-content: stretch !important;
+      background: transparent !important;
+      align-items: flex-start !important;
+      justify-content: flex-start !important;
     }
 
 
@@ -358,6 +348,9 @@
     /* ===== 2) Display(直播) 時：整個計分板都透明 ===== */
     body.displayOnly .board{
       opacity: 0.8 !important;   /* ✅ 透明度：0.65~0.95 自己調 */
+    }
+    body.displayOnly .grid{
+      grid-template-columns: repeat(4, 25vw) !important;
     }
        
   </style>
