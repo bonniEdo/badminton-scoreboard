@@ -337,6 +337,27 @@
     body.displayOnly .cell{
       border-color: rgba(255,255,255,.35) !important; /* 如果你底是透明、疊在深色畫面上 */
     }
+
+    .teamCell.teamRowA{
+      background: linear-gradient(
+        90deg,
+        rgba(247,183,196,.55),
+        rgba(255,255,255,.96)
+      ) !important;
+    }
+
+    .teamCell.teamRowB{
+      background: linear-gradient(
+        90deg,
+        rgba(247,230,170,.60),
+        rgba(255,255,255,.96)
+      ) !important;
+    }
+
+    /* ===== 2) Display(直播) 時：整個計分板都透明 ===== */
+    body.displayOnly .board{
+      opacity: 0.8 !important;   /* ✅ 透明度：0.65~0.95 自己調 */
+    }
        
   </style>
 </head>
