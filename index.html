@@ -352,7 +352,7 @@
 
   const board = el('board');
   const panel = el('panel');
-  if (displayOnly) board.classList.add('displayOnly');
+  if (displayOnly) document.body.classList.add('displayOnly');
   el('matchPill').textContent = matchId;
   el('modePill').textContent = displayOnly ? 'display' : 'control';
 
