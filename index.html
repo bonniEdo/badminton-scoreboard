@@ -410,6 +410,18 @@
   });
 
   let state = load();
+    // ✅ Firebase 即時訂閱：只註冊一次（不要放在 render 裡）
+  onValue(roomRef, (snap) => {
+    const remote = snap.val();
+    if (!remote) return;
+
+    // 遠端比較新才套用（避免把自己剛改的蓋回去）
+    if (!state.updatedAt || (remote.updatedAt && remote.updatedAt >= state.updatedAt)) {
+      state = { ...defaultState(), ...remote };
+      render();
+    }
+  });
+
 
   function load(){
     try{
@@ -441,16 +453,6 @@
   }
 
   function render(){
-    onValue(roomRef, (snap) => {
-      const remote = snap.val();
-      if (!remote) return;
-
-      // 只在遠端比較新時套用（避免本機剛寫入又被舊資料蓋回）
-      if (!state.updatedAt || (remote.updatedAt && remote.updatedAt >= state.updatedAt)) {
-        state = { ...defaultState(), ...remote };
-        render();
-      }
-    });
     el('title').value = state.title;
     el('nameA').value = state.nameA;
     el('nameB').value = state.nameB;
