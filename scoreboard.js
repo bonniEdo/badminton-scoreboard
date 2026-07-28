@@ -85,8 +85,23 @@ function totals() {
   };
 }
 
+function formatScore(value) {
+  return value === null ? "–" : String(value);
+}
+
 function render() {
   const total = totals();
+
+  for (const team of ["A", "B"]) {
+    for (const game of [1, 2]) {
+      const element = $(`${team}${game}`);
+      const value = state.scores[team][game];
+      element.textContent = formatScore(value);
+      element.classList.toggle("empty", value === null);
+      element.classList.toggle("current", game === state.currentGame);
+      element.classList.toggle("winner", gameWinner(game) === team);
+    }
+  }
 
   $("totalA").textContent = total.A;
   $("totalB").textContent = total.B;
@@ -94,6 +109,10 @@ function render() {
   $("totalB").classList.toggle("leader", total.B > total.A);
   $("currentA").textContent = state.scores.A[state.currentGame] ?? 0;
   $("currentB").textContent = state.scores.B[state.currentGame] ?? 0;
+
+  document.querySelectorAll(".gameHead").forEach((element) => {
+    element.classList.toggle("current", Number(element.dataset.game) === state.currentGame);
+  });
 
   document.querySelectorAll(".gameButton").forEach((element) => {
     element.classList.toggle("active", Number(element.dataset.pickGame) === state.currentGame);
@@ -185,6 +204,11 @@ function bindControls() {
     button.addEventListener("click", () => selectGame(Number(button.dataset.pickGame)));
   });
 
+  document.querySelectorAll(".score").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (!displayOnly) selectGame(Number(button.dataset.game));
+    });
+  });
 }
 
 async function connectFirebase() {
