@@ -58,87 +58,26 @@
     }
 
     .scoreboard {
+      width: min(620px, 100%);
+      margin: 0 auto;
       overflow: hidden;
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      background: #fff;
+      background: rgba(255, 255, 255, .9);
       box-shadow: 0 22px 58px rgba(48, 61, 77, .14);
-    }
-
-    .boardHeader {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-height: 58px;
-      padding: 12px 18px;
-      border-bottom: 1px solid var(--line);
-      background: linear-gradient(90deg, #fffdf7, #eef9fe);
-    }
-
-    .live {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      color: var(--blue-deep);
-      font-size: 10px;
-      font-weight: 950;
-      letter-spacing: .14em;
-    }
-
-    .live::before {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--blue-deep);
-      box-shadow: 0 0 0 4px rgba(79, 159, 207, .12);
-      content: "";
-    }
-
-    .title {
-      flex: 1;
-      margin: 0;
-      font-size: clamp(17px, 2.5vw, 23px);
-      font-weight: 950;
-      letter-spacing: .03em;
-    }
-
-    .rule {
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 850;
-      white-space: nowrap;
+      backdrop-filter: blur(8px);
     }
 
     .scoreGrid {
       display: grid;
-      grid-template-columns: minmax(180px, 1.8fr) repeat(3, 1fr);
+      grid-template-columns: minmax(180px, 1.8fr) minmax(115px, .72fr);
     }
-
-    .gridHead {
-      display: grid;
-      place-items: center;
-      min-height: 34px;
-      border-right: 1px solid var(--line);
-      background: #f1f4f6;
-      color: #778396;
-      font-size: 10px;
-      font-weight: 950;
-      letter-spacing: .12em;
-    }
-
-    .gridHead:first-child {
-      justify-content: start;
-      padding-left: 18px;
-    }
-
-    .gridHead:last-child { border-right: 0; }
-    .gridHead.current { color: #99720a; background: #fff7d8; }
 
     .team {
       display: flex;
       align-items: center;
       min-width: 0;
-      min-height: 96px;
+      min-height: 104px;
       padding: 12px 20px;
       border-top: 1px solid var(--line);
       border-right: 1px solid var(--line);
@@ -172,11 +111,10 @@
       white-space: nowrap;
     }
 
-    .score,
     .total {
       display: grid;
       place-items: center;
-      min-height: 96px;
+      min-height: 104px;
       border-top: 1px solid var(--line);
       border-right: 1px solid var(--line);
       background: var(--panel);
@@ -186,16 +124,6 @@
       line-height: 1;
     }
 
-    .score {
-      border-radius: 0;
-      cursor: pointer;
-    }
-
-    .score:active { background: #edf2f6; }
-    .score.current { background: #fff9e7; }
-    .score.winner { color: #a87800; }
-    .score.empty { color: #9aa5b3; }
-
     .total {
       border-right: 0;
       background: linear-gradient(180deg, #f7f9fb, #edf2f6);
@@ -203,22 +131,7 @@
 
     .total.leader { color: #a87800; }
 
-    .boardFooter {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      min-height: 40px;
-      padding: 9px 18px;
-      border-top: 1px solid var(--line);
-      background: #f8fafb;
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 800;
-    }
-
-    .status { color: #465367; }
-    .status strong { color: #99720a; }
+    .scoreGrid > :nth-child(-n+2) { border-top: 0; }
 
     .controls {
       margin-top: 18px;
@@ -373,30 +286,29 @@
     }
 
     body.displayOnly .app {
-      width: min(1180px, calc(100vw - 36px));
+      width: min(620px, calc(100vw - 36px));
     }
 
     body.displayOnly .controls { display: none; }
-    body.displayOnly .score { cursor: default; }
+    body.displayOnly .scoreboard {
+      opacity: .82;
+      box-shadow: 0 14px 38px rgba(48, 61, 77, .18);
+    }
 
     @media (max-width: 700px) {
       body { padding: 12px; }
-      .rule { display: none; }
-      .scoreGrid { grid-template-columns: minmax(115px, 1.45fr) repeat(3, 1fr); }
-      .gridHead:first-child { padding-left: 11px; }
-      .team, .score, .total { min-height: 74px; }
+      .scoreGrid { grid-template-columns: minmax(115px, 1.45fr) minmax(82px, .68fr); }
+      .team, .total { min-height: 74px; }
       .team { padding: 8px 11px; }
       .teamMark { width: 4px; height: 34px; margin-right: 8px; }
       .teamName { font-size: clamp(20px, 6vw, 30px); }
-      .score, .total { font-size: clamp(30px, 9vw, 46px); }
+      .total { font-size: clamp(34px, 11vw, 52px); }
       .teamControls { grid-template-columns: 1fr; }
       .scoreButton { min-height: 90px; }
     }
 
     @media (max-width: 420px) {
-      .live { font-size: 0; }
-      .title { font-size: 17px; }
-      .boardFooter span:last-child { display: none; }
+      .scoreboard { border-radius: 16px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -407,39 +319,19 @@
 <body>
   <main class="app">
     <section class="scoreboard" aria-label="白隊對藍隊羽球計分板">
-      <header class="boardHeader">
-        <span class="live">LIVE</span>
-        <h1 class="title">白隊 VS 藍隊</h1>
-        <span class="rule">兩局總分 · 15 分 · 17 分封頂</span>
-      </header>
-
       <div class="scoreGrid">
-        <div class="gridHead">隊伍</div>
-        <div class="gridHead gameHead current" data-game="1">第 1 局</div>
-        <div class="gridHead gameHead" data-game="2">第 2 局</div>
-        <div class="gridHead">總分</div>
-
         <div class="team white">
           <span class="teamMark"></span>
           <span class="teamName">白隊</span>
         </div>
-        <button id="A1" class="score empty current" data-game="1" aria-label="白隊第一局分數">–</button>
-        <button id="A2" class="score empty" data-game="2" aria-label="白隊第二局分數">–</button>
         <div id="totalA" class="total" aria-label="白隊兩局總分">0</div>
 
         <div class="team blue">
           <span class="teamMark"></span>
           <span class="teamName">藍隊</span>
         </div>
-        <button id="B1" class="score empty current" data-game="1" aria-label="藍隊第一局分數">–</button>
-        <button id="B2" class="score empty" data-game="2" aria-label="藍隊第二局分數">–</button>
         <div id="totalB" class="total" aria-label="藍隊兩局總分">0</div>
       </div>
-
-      <footer class="boardFooter">
-        <span id="status" class="status"><strong>第 1 局</strong> · 15 分制</span>
-        <span>兩局總分決勝</span>
-      </footer>
     </section>
 
     <section class="controls" aria-label="平板計分控制">

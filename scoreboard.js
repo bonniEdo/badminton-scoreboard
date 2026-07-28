@@ -22,6 +22,8 @@ let state = loadLocalState();
 let dbApi = null;
 let roomRef = null;
 let toastTimer = null;
+let queuedWrite = false;
+let writePending = false;
 
 function defaultState() {
   return {
@@ -83,31 +85,8 @@ function totals() {
   };
 }
 
-function matchWinner() {
-  if (!gameWinner(1) || !gameWinner(2)) return null;
-  const total = totals();
-  if (total.A === total.B) return "T";
-  return total.A > total.B ? "A" : "B";
-}
-
-function formatScore(value) {
-  return value === null ? "–" : String(value);
-}
-
 function render() {
   const total = totals();
-  const winner = matchWinner();
-
-  for (const team of ["A", "B"]) {
-    for (const game of [1, 2]) {
-      const element = $(`${team}${game}`);
-      const value = state.scores[team][game];
-      element.textContent = formatScore(value);
-      element.classList.toggle("empty", value === null);
-      element.classList.toggle("current", game === state.currentGame);
-      element.classList.toggle("winner", gameWinner(game) === team);
-    }
-  }
 
   $("totalA").textContent = total.A;
   $("totalB").textContent = total.B;
@@ -116,36 +95,34 @@ function render() {
   $("currentA").textContent = state.scores.A[state.currentGame] ?? 0;
   $("currentB").textContent = state.scores.B[state.currentGame] ?? 0;
 
-  document.querySelectorAll(".gameHead").forEach((element) => {
-    element.classList.toggle("current", Number(element.dataset.game) === state.currentGame);
-  });
-
   document.querySelectorAll(".gameButton").forEach((element) => {
     element.classList.toggle("active", Number(element.dataset.pickGame) === state.currentGame);
   });
-
-  if (winner === "A" || winner === "B") {
-    $("status").innerHTML = `<strong>${winner === "A" ? "白隊" : "藍隊"}獲勝</strong> · 總分 ${total.A}：${total.B}`;
-  } else if (winner === "T") {
-    $("status").innerHTML = `<strong>兩局總分平手</strong> · ${total.A}：${total.B}`;
-  } else {
-    const a = state.scores.A[state.currentGame];
-    const b = state.scores.B[state.currentGame];
-    const deuce = a !== null && b !== null && a >= 14 && b >= 14;
-    $("status").innerHTML = `<strong>第 ${state.currentGame} 局</strong> · ${deuce ? "DEUCE，17 分封頂" : "15 分制"}`;
-  }
 }
 
-async function save() {
+function save() {
   state.updatedAt = Date.now();
   try {
     localStorage.setItem(storageKey, JSON.stringify(state));
   } catch {}
 
-  if (!roomRef || !dbApi) return;
-  try {
-    await dbApi.set(roomRef, state);
-  } catch {}
+  if (!roomRef || !dbApi) {
+    queuedWrite = true;
+    return;
+  }
+
+  queuedWrite = false;
+  writePending = true;
+  const payload = JSON.parse(JSON.stringify(state));
+  dbApi.set(roomRef, payload)
+    .then(() => {
+      if (state.updatedAt === payload.updatedAt) writePending = false;
+    })
+    .catch(() => {
+      queuedWrite = true;
+      writePending = false;
+      if (!displayOnly) showToast("即時同步連線失敗");
+    });
 }
 
 function showToast(message) {
@@ -208,38 +185,49 @@ function bindControls() {
     button.addEventListener("click", () => selectGame(Number(button.dataset.pickGame)));
   });
 
-  document.querySelectorAll(".score").forEach((button) => {
-    button.addEventListener("click", () => {
-      if (!displayOnly) selectGame(Number(button.dataset.game));
-    });
-  });
 }
 
 async function connectFirebase() {
   try {
-    const [{ initializeApp }, database] = await Promise.all([
+    const [{ initializeApp }, authApi, database] = await Promise.all([
       import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js"),
       import("https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js")
     ]);
     const app = initializeApp(firebaseConfig);
+    const auth = authApi.getAuth(app);
+    await auth.authStateReady();
+    if (!auth.currentUser) {
+      await authApi.signInAnonymously(auth);
+    }
+
     const db = database.getDatabase(app);
+    database.goOnline(db);
     dbApi = database;
     roomRef = database.ref(db, `matches/${matchId}`);
 
     database.onValue(roomRef, (snapshot) => {
       const remote = snapshot.val();
       if (remote) {
-        state = normalizeState(remote);
-        try {
-          localStorage.setItem(storageKey, JSON.stringify(state));
-        } catch {}
-        render();
+        const remoteState = normalizeState(remote);
+        if (displayOnly || !writePending || remoteState.updatedAt >= state.updatedAt) {
+          state = remoteState;
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(state));
+          } catch {}
+          render();
+        }
       } else {
         save();
       }
+    }, () => {
+      if (!displayOnly) showToast("即時同步連線失敗");
     });
-  } catch {
-    // 網路無法連線時仍可在同一台平板上計分。
+
+    if (queuedWrite) save();
+  } catch (error) {
+    console.error("Firebase sync failed:", error);
+    if (!displayOnly) showToast("即時同步連線失敗");
   }
 }
 
