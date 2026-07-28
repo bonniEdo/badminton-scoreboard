@@ -3,296 +3,480 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Badminton Bar Scoreboard</title>
+  <meta name="theme-color" content="#f5f3ed" />
+  <meta name="description" content="白隊對藍隊羽球兩局總分制直播計分板" />
+  <title>白隊 vs 藍隊｜羽球計分板</title>
   <style>
-    :root{
-    --bg: #f6f4f1;
-    --paper: rgba(255,255,255,.86);
-    --paper2: rgba(255,255,255,.72);
-    --stroke: rgba(20,30,45,.12);
-    --stroke2: rgba(20,30,45,.18);
-    --text: rgba(20,30,45,.92);
-    --muted: rgba(20,30,45,.55);
-    --accent: #c48a2c;
-    --radius: 18px;
+    :root {
+      color-scheme: light;
+      --bg: #f5f3ed;
+      --panel: #fbfcfd;
+      --panel-light: #f1f4f7;
+      --line: rgba(35, 51, 72, .14);
+      --text: #172235;
+      --muted: #6f7b8c;
+      --white: #f6e7ad;
+      --white-soft: #fffaf0;
+      --white-deep: #d3aa35;
+      --white-text: #101827;
+      --blue: #c8eafa;
+      --blue-soft: #eef9ff;
+      --blue-deep: #4f9fcf;
+      --lime: #f0cd62;
+      --danger: #ff7381;
+      --radius: 22px;
     }
 
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; margin:0; }
+    * { box-sizing: border-box; }
 
-    body{
-    font-family: ui-sans-serif, system-ui, -apple-system, "PingFang TC","Noto Sans TC","Microsoft JhengHei", sans-serif;
-    color: var(--text);
-    background: radial-gradient(1100px 700px at 15% 10%, rgba(255,255,255,.75), transparent 55%), var(--bg);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:16px;
+    html, body {
+      min-height: 100%;
+      margin: 0;
     }
 
-    .wrap{ width:min(1200px, 100%); }
-
-    .board{
-    border-radius: var(--radius);
-    overflow:hidden;
-    border: 1px solid var(--stroke);
-    box-shadow: 0 18px 60px rgba(20,30,45,.12);
-    background: linear-gradient(180deg, var(--paper), var(--paper2));
-    backdrop-filter: blur(10px);
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 8% 0%, rgba(246, 231, 173, .78), transparent 30rem),
+        radial-gradient(circle at 92% 8%, rgba(200, 234, 250, .78), transparent 32rem),
+        var(--bg);
+      padding: clamp(14px, 3vw, 32px);
     }
 
-    /* 控制面板比例：隊伍縮短 */
-    .grid{
+    button {
+      border: 0;
+      color: inherit;
+      font: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app {
+      width: min(1050px, 100%);
+      margin: 0 auto;
+    }
+
+    .scoreboard {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: 0 22px 58px rgba(48, 61, 77, .14);
+    }
+
+    .boardHeader {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 58px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(90deg, #fffdf7, #eef9fe);
+    }
+
+    .live {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--blue-deep);
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .14em;
+    }
+
+    .live::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--blue-deep);
+      box-shadow: 0 0 0 4px rgba(79, 159, 207, .12);
+      content: "";
+    }
+
+    .title {
+      flex: 1;
+      margin: 0;
+      font-size: clamp(17px, 2.5vw, 23px);
+      font-weight: 950;
+      letter-spacing: .03em;
+    }
+
+    .rule {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .scoreGrid {
       display: grid;
-      grid-template-columns: 1.5fr 1fr 1fr 1fr; 
+      grid-template-columns: minmax(180px, 1.8fr) repeat(3, 1fr);
+    }
+
+    .gridHead {
+      display: grid;
+      place-items: center;
+      min-height: 34px;
+      border-right: 1px solid var(--line);
+      background: #f1f4f6;
+      color: #778396;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .12em;
+    }
+
+    .gridHead:first-child {
+      justify-content: start;
+      padding-left: 18px;
+    }
+
+    .gridHead:last-child { border-right: 0; }
+    .gridHead.current { color: #99720a; background: #fff7d8; }
+
+    .team {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      min-height: 96px;
+      padding: 12px 20px;
+      border-top: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+    }
+
+    .team.white {
+      color: var(--white-text);
+      background: linear-gradient(90deg, var(--white-soft), var(--white));
+    }
+
+    .team.blue {
+      color: var(--white-text);
+      background: linear-gradient(90deg, var(--blue-soft), var(--blue));
+    }
+
+    .teamMark {
+      width: 6px;
+      height: 44px;
+      margin-right: 14px;
+      border-radius: 99px;
+    }
+
+    .white .teamMark { background: var(--white-deep); }
+    .blue .teamMark { background: var(--blue-deep); }
+
+    .teamName {
+      overflow: hidden;
+      font-size: clamp(25px, 4vw, 38px);
+      font-weight: 950;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .score,
+    .total {
+      display: grid;
+      place-items: center;
+      min-height: 96px;
+      border-top: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(38px, 7vw, 62px);
+      font-weight: 950;
+      line-height: 1;
+    }
+
+    .score {
+      border-radius: 0;
+      cursor: pointer;
+    }
+
+    .score:active { background: #edf2f6; }
+    .score.current { background: #fff9e7; }
+    .score.winner { color: #a87800; }
+    .score.empty { color: #9aa5b3; }
+
+    .total {
+      border-right: 0;
+      background: linear-gradient(180deg, #f7f9fb, #edf2f6);
+    }
+
+    .total.leader { color: #a87800; }
+
+    .boardFooter {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 40px;
+      padding: 9px 18px;
+      border-top: 1px solid var(--line);
+      background: #f8fafb;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .status { color: #465367; }
+    .status strong { color: #99720a; }
+
+    .controls {
+      margin-top: 18px;
+      padding: clamp(16px, 2.5vw, 24px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .94);
+      box-shadow: 0 16px 44px rgba(48, 61, 77, .09);
+    }
+
+    .gamePicker {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+      margin-bottom: 16px;
+      padding: 5px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #eef2f5;
+    }
+
+    .gameButton {
+      min-height: 48px;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 950;
+      cursor: pointer;
+    }
+
+    .gameButton.active {
+      background: var(--lime);
+      color: #493700;
+    }
+
+    .teamControls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .teamControl {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(48, 61, 77, .07);
+    }
+
+    .controlTitle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 52px;
+      padding: 10px 16px;
+      font-size: 19px;
+      font-weight: 950;
+    }
+
+    .whiteControl .controlTitle {
+      color: var(--white-text);
+      background: var(--white);
+    }
+
+    .blueControl .controlTitle {
+      color: var(--white-text);
+      background: var(--blue);
+    }
+
+    .currentValue {
+      font-variant-numeric: tabular-nums;
+      font-size: 27px;
+    }
+
+    .buttonRow {
+      display: grid;
+      grid-template-columns: .72fr 1.5fr;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .scoreButton {
+      min-height: clamp(92px, 16vw, 138px);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: var(--panel-light);
+      font-size: clamp(27px, 5vw, 42px);
+      font-weight: 950;
+      cursor: pointer;
+      transition: transform .08s ease;
+    }
+
+    .scoreButton:active { transform: scale(.975); }
+
+    .plus {
+      color: #253044;
+      background: var(--lime);
+    }
+
+    .whiteControl .plus { background: var(--white); }
+    .blueControl .plus { background: var(--blue); }
+
+    .minus { color: #536174; }
+
+    .clearButton {
       width: 100%;
+      min-height: 58px;
+      margin-top: 14px;
+      border: 1px solid rgba(199, 66, 80, .35);
+      border-radius: 14px;
+      background: #fff5f6;
+      color: #c74250;
+      font-size: 15px;
+      font-weight: 950;
+      cursor: pointer;
     }
 
-    .cell{
-    padding: 18px;
-    border-right:1px solid var(--stroke);
-    border-bottom:1px solid var(--stroke);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    min-height: 80px;
-    }
-    .cell:last-child{ border-right:none; }
+    .clearButton:active { background: #ffe9ec; }
 
-    .teamCell{ justify-content: space-between !important; padding-left: 15px; }
-
-    .teamName{
-    width: 100%;
-    border: none;
-    background: transparent;
-    color: var(--text);
-    outline:none;
-    font-size: 24px;
-    font-weight: 900;
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 10;
+      padding: 11px 17px;
+      border: 1px solid rgba(79, 159, 207, .28);
+      border-radius: 999px;
+      background: #f0f9fd;
+      color: #286f99;
+      font-size: 12px;
+      font-weight: 850;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 10px);
+      transition: opacity .18s ease, transform .18s ease;
     }
 
-    .shuttle{ font-size: 32px; color: var(--accent); flex-shrink: 0; }
-
-    .score{ font-variant-numeric: tabular-nums; font-weight: 950; font-size: 58px; line-height:1; }
-
-    .dash{ opacity:.3; }
-
-    .titleBar{ background: rgba(255,255,255,.70); padding: 14px; text-align: center; border-bottom: 1px solid var(--stroke); }
-    .titleInput{ width:100%; text-align:center; font-weight: 950; font-size: 26px; background: transparent; border: none; outline:none; }
-
-    /* 平板控制面板 */
-    .panel{
-    margin-top: 20px;
-    border-radius: 16px;
-    padding: 16px;
-    background: rgba(255,255,255,.9);
-    display:flex;
-    flex-direction: column;
-    gap: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
     }
 
-    .tools-row{ display:flex; justify-content: center; gap: 12px; flex-wrap: wrap; align-items: center; }
+    body.displayOnly {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 18px;
+      overflow: hidden;
+      background: transparent;
+    }
 
-    select, button { border-radius: 12px; border: 1px solid var(--stroke); background: white; padding: 12px 18px; font-weight: 800; font-size: 16px; cursor: pointer; outline: none; }
-    
-    /* 大按鈕 */
-    .btn-score { min-width: 90px; padding: 20px 0; font-size: 24px; }
-    button:active { background: #eee; }
-    button.danger { color: #d9534f; border-color: #d9534f; }
-    .pill { font-size: 14px; padding: 10px 15px; border: 1px solid var(--stroke); border-radius: 999px; background: white; }
+    body.displayOnly .app {
+      width: min(1180px, calc(100vw - 36px));
+    }
 
-    /* ===== 直播顯示樣式 (絕對不動) ===== */
-    body.displayOnly { padding: 0 !important; background: transparent !important; align-items: flex-start !important; }
-    body.displayOnly .panel { display: none !important; }
-    body.displayOnly .board { width: 100vw !important; border-radius: 0 !important; opacity: 0.8; border: 0 !important; box-shadow: none !important; }
-    body.displayOnly .grid { grid-template-columns: repeat(4, 25vw) !important; } /* YouTube 25vw 比例 */
-    body.displayOnly .cell { min-height: unset !important; padding: 10px; border-color: rgba(255,255,255,.3) !important; }
-    body.displayOnly .score { font-size: clamp(28px, 6vw, 58px); }
-    body.displayOnly .teamName { font-size: clamp(18px, 3vw, 26px); pointer-events: none; }
-    
-    .teamRowA{ background: linear-gradient(90deg, rgba(247,183,196,.55), rgba(255,255,255,.96)) !important; }
-    .teamRowB{ background: linear-gradient(90deg, rgba(247,230,170,.60), rgba(255,255,255,.96)) !important; }
+    body.displayOnly .controls { display: none; }
+    body.displayOnly .score { cursor: default; }
 
+    @media (max-width: 700px) {
+      body { padding: 12px; }
+      .rule { display: none; }
+      .scoreGrid { grid-template-columns: minmax(115px, 1.45fr) repeat(3, 1fr); }
+      .gridHead:first-child { padding-left: 11px; }
+      .team, .score, .total { min-height: 74px; }
+      .team { padding: 8px 11px; }
+      .teamMark { width: 4px; height: 34px; margin-right: 8px; }
+      .teamName { font-size: clamp(20px, 6vw, 30px); }
+      .score, .total { font-size: clamp(30px, 9vw, 46px); }
+      .teamControls { grid-template-columns: 1fr; }
+      .scoreButton { min-height: 90px; }
+    }
+
+    @media (max-width: 420px) {
+      .live { font-size: 0; }
+      .title { font-size: 17px; }
+      .boardFooter span:last-child { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
   </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="board">
-    <div class="titleBar">
-      <input id="title" class="titleInput" value="老鼠會羽球賽" />
-    </div>
-    <div class="grid">
-      <div class="cell teamCell teamRowA">
-        <div class="teamLeft"><input id="nameA" class="teamName" value="隊伍 A" /></div>
-        <div class="shuttle" id="shuttleA">🏸</div>
+  <main class="app">
+    <section class="scoreboard" aria-label="白隊對藍隊羽球計分板">
+      <header class="boardHeader">
+        <span class="live">LIVE</span>
+        <h1 class="title">白隊 VS 藍隊</h1>
+        <span class="rule">兩局總分 · 15 分 · 17 分封頂</span>
+      </header>
+
+      <div class="scoreGrid">
+        <div class="gridHead">隊伍</div>
+        <div class="gridHead gameHead current" data-game="1">第 1 局</div>
+        <div class="gridHead gameHead" data-game="2">第 2 局</div>
+        <div class="gridHead">總分</div>
+
+        <div class="team white">
+          <span class="teamMark"></span>
+          <span class="teamName">白隊</span>
+        </div>
+        <button id="A1" class="score empty current" data-game="1" aria-label="白隊第一局分數">–</button>
+        <button id="A2" class="score empty" data-game="2" aria-label="白隊第二局分數">–</button>
+        <div id="totalA" class="total" aria-label="白隊兩局總分">0</div>
+
+        <div class="team blue">
+          <span class="teamMark"></span>
+          <span class="teamName">藍隊</span>
+        </div>
+        <button id="B1" class="score empty current" data-game="1" aria-label="藍隊第一局分數">–</button>
+        <button id="B2" class="score empty" data-game="2" aria-label="藍隊第二局分數">–</button>
+        <div id="totalB" class="total" aria-label="藍隊兩局總分">0</div>
       </div>
-      <div class="cell scoreCell"><div class="score" id="A1">-</div></div>
-      <div class="cell scoreCell"><div class="score" id="A2">-</div></div>
-      <div class="cell scoreCell"><div class="score" id="A3">-</div></div>
 
-      <div class="cell teamCell teamRowB">
-        <div class="teamLeft"><input id="nameB" class="teamName" value="隊伍 B" /></div>
-        <div class="shuttle" id="shuttleB" style="opacity:0;">🏸</div>
+      <footer class="boardFooter">
+        <span id="status" class="status"><strong>第 1 局</strong> · 15 分制</span>
+        <span>兩局總分決勝</span>
+      </footer>
+    </section>
+
+    <section class="controls" aria-label="平板計分控制">
+      <div class="gamePicker" aria-label="選擇局數">
+        <button class="gameButton active" data-pick-game="1">第 1 局</button>
+        <button class="gameButton" data-pick-game="2">第 2 局</button>
       </div>
-      <div class="cell scoreCell"><div class="score" id="B1">-</div></div>
-      <div class="cell scoreCell"><div class="score" id="B2">-</div></div>
-      <div class="cell scoreCell"><div class="score" id="B3">-</div></div>
-    </div>
-  </div>
 
-  <div class="panel" id="panel">
-    <div class="tools-row">
-      <span class="pill">ID: <b id="matchPill">default</b></span>
-      <label class="pill">目前局：
-        <select id="currentSet">
-          <option value="1">第 1 局</option>
-          <option value="2">第 2 局</option>
-          <option value="3">第 3 局</option>
-        </select>
-      </label>
-    </div>
-    <div class="tools-row">
-      <button id="Aplus" class="btn-score">A +1</button>
-      <button id="Aminus" class="btn-score">A -1</button>
-      <button id="Bplus" class="btn-score">B +1</button>
-      <button id="Bminus" class="btn-score">B -1</button>
-    </div>
-    <div class="tools-row">
-      <button id="clearCell">清空本局</button>
-      <button id="resetAll" class="danger">重置全部</button>
-    </div>
-  </div>
-</div>
+      <div class="teamControls">
+        <article class="teamControl whiteControl">
+          <div class="controlTitle">
+            <span>白隊</span>
+            <span id="currentA" class="currentValue">0</span>
+          </div>
+          <div class="buttonRow">
+            <button id="minusA" class="scoreButton minus" aria-label="白隊減一分">−1</button>
+            <button id="plusA" class="scoreButton plus" aria-label="白隊加一分">+1</button>
+          </div>
+        </article>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
-  
-  const firebaseConfig = {
-    apiKey: "AIzaSyA4nfnsIBGLua60tZDVpWoKQKlY1BDjuvU",
-    authDomain: "badminton-scoreboard-898a5.firebaseapp.com",
-    databaseURL: "https://badminton-scoreboard-898a5-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "badminton-scoreboard-898a5",
-    storageBucket: "badminton-scoreboard-898a5.firebasestorage.app",
-    messagingSenderId: "1049093037710",
-    appId: "1:1049093037710:web:b2f33852920a4892eef3df",
-    measurementId: "G-HFQG0FBYH6"
-  };
+        <article class="teamControl blueControl">
+          <div class="controlTitle">
+            <span>藍隊</span>
+            <span id="currentB" class="currentValue">0</span>
+          </div>
+          <div class="buttonRow">
+            <button id="minusB" class="scoreButton minus" aria-label="藍隊減一分">−1</button>
+            <button id="plusB" class="scoreButton plus" aria-label="藍隊加一分">+1</button>
+          </div>
+        </article>
+      </div>
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const qs = new URLSearchParams(location.search);
-  const matchId = (qs.get('match') || 'default').trim();
-  const displayOnly = (qs.get('view') === 'display');
-  const roomRef = ref(db, `matches/${matchId}`);
-  const el = (id) => document.getElementById(id);
+      <button id="clearButton" class="clearButton">清空全部比分</button>
+    </section>
+  </main>
 
-  if (displayOnly) document.body.classList.add('displayOnly');
-  el('matchPill').textContent = matchId;
-
-  const defaultState = () => ({
-    title: '老鼠會羽球賽',
-    nameA: '隊伍 A',
-    nameB: '隊伍 B',
-    scores: { A: {1:null,2:null,3:null}, B: {1:null,2:null,3:null} },
-    serveTeamBySet: { 1: null, 2: null, 3: null },
-    currentSet: 1,
-    updatedAt: Date.now(),
-  });
-
-  let state = defaultState();
-
-  onValue(roomRef, (snap) => {
-    const remote = snap.val();
-    if (remote) {
-      if (!state.updatedAt || remote.updatedAt >= state.updatedAt) {
-        state = remote;
-        render();
-      }
-    }
-  });
-
-  async function save(){
-    state.updatedAt = Date.now();
-    await set(roomRef, state);
-  }
-
-  function fmt(v){ 
-    if (v === null || v === undefined || v === '' || isNaN(v)) return '-';
-    return String(v); 
-  }
-
-  function render(){
-    el('title').value = state.title || '';
-    el('nameA').value = state.nameA || '';
-    el('nameB').value = state.nameB || '';
-    el('currentSet').value = String(state.currentSet || 1);
-
-    ['A','B'].forEach(t => {
-      for(let s=1; s<=3; s++) {
-        const val = (state.scores && state.scores[t]) ? state.scores[t][s] : null;
-        const dom = el(t + s);
-        if (dom) {
-          dom.textContent = fmt(val);
-          dom.classList.toggle('dash', fmt(val) === '-');
-        }
-      }
-    });
-
-    const curS = state.currentSet || 1;
-    const serve = state.serveTeamBySet ? state.serveTeamBySet[curS] : null;
-    el('shuttleA').style.opacity = (serve === 'A') ? 1 : 0;
-    el('shuttleB').style.opacity = (serve === 'B') ? 1 : 0;
-  }
-
-  function inc(team, delta){
-    const s = Number(el('currentSet').value);
-    
-    // 物件安全檢查
-    if (!state.scores) state.scores = { A: {}, B: {} };
-    if (!state.scores.A) state.scores.A = {};
-    if (!state.scores.B) state.scores.B = {};
-
-    let cur = state.scores[team][s];
-    if (cur === null || cur === undefined || isNaN(cur) || cur === '') {
-      cur = 0;
-    }
-
-    const next = cur + delta; // 允許負分
-    state.scores[team][s] = next;
-
-    if (delta > 0) {
-      if (!state.serveTeamBySet) state.serveTeamBySet = {};
-      state.serveTeamBySet[s] = team;
-    }
-
-    // 21分自動跳局 (僅限加分時)
-    if (next >= 21 && s < 4 && delta > 0) {
-      state.currentSet = s + 1;
-    }
-    
-    save(); 
-    render();
-  }
-
-  if(!displayOnly){
-    el('Aplus').onclick = () => inc('A', 1);
-    el('Aminus').onclick = () => inc('A', -1);
-    el('Bplus').onclick = () => inc('B', 1);
-    el('Bminus').onclick = () => inc('B', -1);
-    el('title').oninput = (e) => { state.title = e.target.value; save(); };
-    el('nameA').oninput = (e) => { state.nameA = e.target.value; save(); };
-    el('nameB').oninput = (e) => { state.nameB = e.target.value; save(); };
-    el('currentSet').onchange = (e) => { state.currentSet = Number(e.target.value); save(); };
-    el('clearCell').onclick = () => {
-      const s = state.currentSet;
-      if(state.scores && state.scores.A) state.scores.A[s] = null;
-      if(state.scores && state.scores.B) state.scores.B[s] = null;
-      save(); render();
-    };
-    el('resetAll').onclick = () => { if(confirm('重置全部？')) { state = defaultState(); save(); render(); } };
-  }
-</script>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="./scoreboard.js"></script>
 </body>
 </html>
