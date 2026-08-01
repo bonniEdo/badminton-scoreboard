@@ -68,6 +68,50 @@
       backdrop-filter: blur(8px);
     }
 
+    .matchHeader {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 10px 18px;
+      min-height: 86px;
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(105deg, rgba(255, 250, 235, .96), rgba(239, 249, 255, .96));
+    }
+
+    .matchMeta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .matchNumber,
+    .matchType {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .matchNumber { background: var(--lime); color: #493700; }
+    .matchType { background: #fff; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
+
+    .matchup {
+      min-width: 0;
+      text-align: right;
+      font-size: clamp(18px, 3vw, 27px);
+      font-weight: 950;
+      line-height: 1.25;
+    }
+
+    .versus {
+      margin: 0 8px;
+      color: #8b96a5;
+      font-size: .65em;
+      letter-spacing: .08em;
+    }
+
     .scoreGrid {
       display: grid;
       grid-template-columns: minmax(180px, 1.7fr) repeat(3, minmax(92px, 1fr));
@@ -88,7 +132,6 @@
     .gridHead:last-child { border-right: 0; }
     .gridHead.current { color: #8a6500; background: rgba(255, 247, 216, .94); }
     .gridHead:first-child { background: rgba(248, 249, 250, .92); }
-    }
 
     .team {
       display: flex;
@@ -124,8 +167,8 @@
       overflow: hidden;
       font-size: clamp(25px, 4vw, 38px);
       font-weight: 950;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      line-height: 1.15;
+      overflow-wrap: anywhere;
     }
 
     .score,
@@ -170,6 +213,47 @@
       background: rgba(255, 255, 255, .94);
       box-shadow: 0 16px 44px rgba(48, 61, 77, .09);
     }
+
+    .matchPicker {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 9px;
+      margin-bottom: 12px;
+    }
+
+    .matchPicker label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .matchSelect,
+    .matchNavButton {
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-weight: 850;
+    }
+
+    .matchSelect {
+      width: 100%;
+      padding: 0 40px 0 13px;
+      cursor: pointer;
+    }
+
+    .matchNavButton {
+      min-width: 76px;
+      padding: 0 13px;
+      cursor: pointer;
+    }
+
+    .matchNavButton:disabled { cursor: default; opacity: .38; }
 
     .gamePicker {
       display: grid;
@@ -320,7 +404,7 @@
 
     body.displayOnly .controls { display: none; }
     body.displayOnly .scoreboard {
-      opacity: .60;
+      opacity: .92;
       box-shadow: 0 14px 38px rgba(48, 61, 77, .18);
     }
 
@@ -328,11 +412,14 @@
       body { padding: 12px; }
       .scoreGrid { grid-template-columns: minmax(115px, 1.45fr) repeat(3, minmax(62px, 1fr)); }
       .team, .score, .total { min-height: 74px; }
+      .matchHeader { grid-template-columns: 1fr; gap: 8px; padding: 12px; }
+      .matchup { text-align: left; }
       .team { padding: 8px 11px; }
       .teamMark { width: 4px; height: 34px; margin-right: 8px; }
       .teamName { font-size: clamp(20px, 6vw, 30px); }
       .score, .total { font-size: clamp(29px, 8vw, 46px); }
       .teamControls { grid-template-columns: 1fr; }
+      .matchNavButton { min-width: 54px; padding: 0 8px; font-size: 13px; }
       .scoreButton { min-height: 90px; }
     }
 
@@ -348,6 +435,17 @@
 <body>
   <main class="app">
     <section class="scoreboard" aria-label="白隊對藍隊羽球計分板">
+      <header class="matchHeader">
+        <div class="matchMeta">
+          <span id="matchNumber" class="matchNumber">第 1 場</span>
+          <span id="matchType" class="matchType">男雙</span>
+        </div>
+        <div class="matchup" aria-label="目前對戰組合">
+          <span id="matchupA">楊桃、彭博</span>
+          <span class="versus">VS</span>
+          <span id="matchupB">胖、萊恩</span>
+        </div>
+      </header>
       <div class="scoreGrid">
         <div class="gridHead" aria-hidden="true"></div>
         <div class="gridHead gameHead current" data-game="1">第 1 局</div>
@@ -356,7 +454,7 @@
 
         <div class="team white">
           <span class="teamMark"></span>
-          <span class="teamName">白隊</span>
+          <span id="teamNameA" class="teamName">楊桃、彭博</span>
         </div>
         <button id="A1" class="score empty current" data-game="1" aria-label="白隊第一局分數">–</button>
         <button id="A2" class="score empty" data-game="2" aria-label="白隊第二局分數">–</button>
@@ -364,7 +462,7 @@
 
         <div class="team blue">
           <span class="teamMark"></span>
-          <span class="teamName">藍隊</span>
+          <span id="teamNameB" class="teamName">胖、萊恩</span>
         </div>
         <button id="B1" class="score empty current" data-game="1" aria-label="藍隊第一局分數">–</button>
         <button id="B2" class="score empty" data-game="2" aria-label="藍隊第二局分數">–</button>
@@ -373,6 +471,15 @@
     </section>
 
     <section class="controls" aria-label="平板計分控制">
+      <div class="matchPicker">
+        <button id="previousMatch" class="matchNavButton" type="button">上一場</button>
+        <label>
+          目前對戰場次
+          <select id="matchSelect" class="matchSelect" aria-label="選擇對戰場次"></select>
+        </label>
+        <button id="nextMatch" class="matchNavButton" type="button">下一場</button>
+      </div>
+
       <div class="gamePicker" aria-label="選擇局數">
         <button class="gameButton active" data-pick-game="1">第 1 局</button>
         <button class="gameButton" data-pick-game="2">第 2 局</button>
@@ -381,7 +488,7 @@
       <div class="teamControls">
         <article class="teamControl whiteControl">
           <div class="controlTitle">
-            <span>白隊</span>
+            <span id="controlTeamA">楊桃、彭博</span>
             <span id="currentA" class="currentValue">0</span>
           </div>
           <div class="buttonRow">
@@ -392,7 +499,7 @@
 
         <article class="teamControl blueControl">
           <div class="controlTitle">
-            <span>藍隊</span>
+            <span id="controlTeamB">胖、萊恩</span>
             <span id="currentB" class="currentValue">0</span>
           </div>
           <div class="buttonRow">
@@ -402,11 +509,12 @@
         </article>
       </div>
 
-      <button id="clearButton" class="clearButton">清空全部比分</button>
+      <button id="clearButton" class="clearButton">清空本場比分</button>
     </section>
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="./scoreboard-env.js"></script>
   <script type="module" src="./scoreboard.js"></script>
 </body>
 </html>

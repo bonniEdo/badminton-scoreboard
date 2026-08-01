@@ -12,11 +12,55 @@ const firebaseConfig = {
 const TARGET_SCORE = 15;
 const SCORE_CAP = 17;
 const $ = (id) => document.getElementById(id);
+const env = window.SCOREBOARD_ENV || {};
+
+function safeScheduleId(value, fallback) {
+  const id = String(value ?? "").trim().replace(/[.#$\/\[\]]/g, "-").slice(0, 40);
+  return id && !["__proto__", "prototype", "constructor"].includes(id) ? id : fallback;
+}
+
+function parseSchedule(value) {
+  const rows = Array.isArray(value)
+    ? value
+    : String(value || "")
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith("#"))
+        .map((line) => line.split("|"));
+
+  const seen = new Set();
+  return rows.flatMap((row, index) => {
+    const values = Array.isArray(row)
+      ? row
+      : [row.id ?? row.number, row.type ?? row.category, row.teamA, row.teamB];
+    const id = safeScheduleId(values[0], String(index + 1));
+    if (seen.has(id)) return [];
+    seen.add(id);
+
+    return [{
+      id,
+      number: String(values[0] ?? index + 1).trim() || String(index + 1),
+      type: String(values[1] ?? "羽球").trim() || "羽球",
+      teamA: String(values[2] ?? "").trim(),
+      teamB: String(values[3] ?? "").trim()
+    }];
+  });
+}
+
+const schedule = parseSchedule(env.MATCH_SCHEDULE);
+if (!schedule.length) {
+  schedule.push({ id: "1", number: "1", type: "羽球", teamA: "白隊", teamB: "藍隊" });
+}
+
+const configuredMatchId = safeScheduleId(env.CURRENT_MATCH, schedule[0].id);
+const defaultMatchId = schedule.some((match) => match.id === configuredMatchId)
+  ? configuredMatchId
+  : schedule[0].id;
 const params = new URLSearchParams(location.search);
 const displayOnly = params.get("view") === "display";
-const rawMatchId = (params.get("match") || "default").trim();
-const matchId = rawMatchId.replace(/[.#$\/\[\]]/g, "-").slice(0, 60) || "default";
-const storageKey = `badminton-scoreboard:generic:${matchId}`;
+const rawRoomId = (params.get("match") || "default").trim();
+const roomId = rawRoomId.replace(/[.#$\/\[\]]/g, "-").slice(0, 60) || "default";
+const storageKey = `badminton-scoreboard:generic:${roomId}`;
 
 let state = loadLocalState();
 let dbApi = null;
@@ -25,14 +69,21 @@ let toastTimer = null;
 let queuedWrite = false;
 let writePending = false;
 
-function defaultState() {
+function emptyMatchState() {
   return {
-    version: 3,
     scores: {
       A: { 1: null, 2: null },
       B: { 1: null, 2: null }
     },
-    currentGame: 1,
+    currentGame: 1
+  };
+}
+
+function defaultState() {
+  return {
+    version: 4,
+    currentMatchId: defaultMatchId,
+    matches: { [defaultMatchId]: emptyMatchState() },
     updatedAt: Date.now()
   };
 }
@@ -44,18 +95,47 @@ function scoreValue(value) {
   return Math.min(SCORE_CAP, Math.max(0, Math.trunc(Number(value))));
 }
 
-function normalizeState(value) {
-  const source = value && typeof value === "object" ? value : defaultState();
-  const legacyMatch = source.matches?.[source.currentMatch || 1];
-  const scoreSource = legacyMatch?.scores || source.scores || {};
-
+function normalizeMatchState(value) {
+  const source = value && typeof value === "object" ? value : {};
+  const scoreSource = source.scores || {};
   return {
-    version: 3,
     scores: {
       A: { 1: scoreValue(scoreSource.A?.[1]), 2: scoreValue(scoreSource.A?.[2]) },
       B: { 1: scoreValue(scoreSource.B?.[1]), 2: scoreValue(scoreSource.B?.[2]) }
     },
-    currentGame: Math.min(2, Math.max(1, Number(source.currentGame ?? source.currentSet) || 1)),
+    currentGame: Math.min(2, Math.max(1, Number(source.currentGame ?? source.currentSet) || 1))
+  };
+}
+
+function normalizeState(value) {
+  const source = value && typeof value === "object" ? value : {};
+  const matches = {};
+  let currentMatchId = safeScheduleId(source.currentMatchId, defaultMatchId);
+
+  if (!schedule.some((match) => match.id === currentMatchId)) {
+    currentMatchId = defaultMatchId;
+  }
+
+  if (Number(source.version) >= 4 && source.matches && typeof source.matches === "object") {
+    for (const match of schedule) {
+      if (source.matches[match.id]) {
+        matches[match.id] = normalizeMatchState(source.matches[match.id]);
+      }
+    }
+  } else {
+    const legacyMatch = source.matches?.[source.currentMatch || 1];
+    matches[currentMatchId] = normalizeMatchState({
+      scores: legacyMatch?.scores || source.scores,
+      currentGame: source.currentGame ?? source.currentSet
+    });
+  }
+
+  if (!matches[currentMatchId]) matches[currentMatchId] = emptyMatchState();
+
+  return {
+    version: 4,
+    currentMatchId,
+    matches,
     updatedAt: Number(source.updatedAt) || Date.now()
   };
 }
@@ -69,9 +149,24 @@ function loadLocalState() {
   }
 }
 
+function currentRoster() {
+  return schedule.find((match) => match.id === state.currentMatchId) || schedule[0];
+}
+
+function currentScoreState() {
+  const match = currentRoster();
+  if (!state.matches[match.id]) state.matches[match.id] = emptyMatchState();
+  return state.matches[match.id];
+}
+
+function displayName(value) {
+  return value || "待定";
+}
+
 function gameWinner(gameNumber) {
-  const a = Number(state.scores.A[gameNumber] ?? 0);
-  const b = Number(state.scores.B[gameNumber] ?? 0);
+  const scores = currentScoreState().scores;
+  const a = Number(scores.A[gameNumber] ?? 0);
+  const b = Number(scores.B[gameNumber] ?? 0);
   const high = Math.max(a, b);
   const finished = high === SCORE_CAP || (high >= TARGET_SCORE && Math.abs(a - b) >= 2);
   if (!finished || a === b) return null;
@@ -79,9 +174,10 @@ function gameWinner(gameNumber) {
 }
 
 function totals() {
+  const scores = currentScoreState().scores;
   return {
-    A: Number(state.scores.A[1] ?? 0) + Number(state.scores.A[2] ?? 0),
-    B: Number(state.scores.B[1] ?? 0) + Number(state.scores.B[2] ?? 0)
+    A: Number(scores.A[1] ?? 0) + Number(scores.A[2] ?? 0),
+    B: Number(scores.B[1] ?? 0) + Number(scores.B[2] ?? 0)
   };
 }
 
@@ -90,16 +186,31 @@ function formatScore(value) {
 }
 
 function render() {
+  const roster = currentRoster();
+  const matchState = currentScoreState();
   const total = totals();
+  const teamA = displayName(roster.teamA);
+  const teamB = displayName(roster.teamB);
+
+  $("matchNumber").textContent = `第 ${roster.number} 場`;
+  $("matchType").textContent = roster.type;
+  $("matchupA").textContent = teamA;
+  $("matchupB").textContent = teamB;
+  $("teamNameA").textContent = teamA;
+  $("teamNameB").textContent = teamB;
+  $("controlTeamA").textContent = teamA;
+  $("controlTeamB").textContent = teamB;
+  document.title = `第 ${roster.number} 場｜${teamA} vs ${teamB}`;
 
   for (const team of ["A", "B"]) {
     for (const game of [1, 2]) {
       const element = $(`${team}${game}`);
-      const value = state.scores[team][game];
+      const value = matchState.scores[team][game];
       element.textContent = formatScore(value);
       element.classList.toggle("empty", value === null);
-      element.classList.toggle("current", game === state.currentGame);
+      element.classList.toggle("current", game === matchState.currentGame);
       element.classList.toggle("winner", gameWinner(game) === team);
+      element.setAttribute("aria-label", `${team === "A" ? teamA : teamB}第 ${game} 局分數`);
     }
   }
 
@@ -107,15 +218,20 @@ function render() {
   $("totalB").textContent = total.B;
   $("totalA").classList.toggle("leader", total.A > total.B);
   $("totalB").classList.toggle("leader", total.B > total.A);
-  $("currentA").textContent = state.scores.A[state.currentGame] ?? 0;
-  $("currentB").textContent = state.scores.B[state.currentGame] ?? 0;
+  $("currentA").textContent = matchState.scores.A[matchState.currentGame] ?? 0;
+  $("currentB").textContent = matchState.scores.B[matchState.currentGame] ?? 0;
+  $("matchSelect").value = roster.id;
+
+  const rosterIndex = schedule.findIndex((match) => match.id === roster.id);
+  $("previousMatch").disabled = rosterIndex <= 0;
+  $("nextMatch").disabled = rosterIndex >= schedule.length - 1;
 
   document.querySelectorAll(".gameHead").forEach((element) => {
-    element.classList.toggle("current", Number(element.dataset.game) === state.currentGame);
+    element.classList.toggle("current", Number(element.dataset.game) === matchState.currentGame);
   });
 
   document.querySelectorAll(".gameButton").forEach((element) => {
-    element.classList.toggle("active", Number(element.dataset.pickGame) === state.currentGame);
+    element.classList.toggle("active", Number(element.dataset.pickGame) === matchState.currentGame);
   });
 }
 
@@ -153,18 +269,19 @@ function showToast(message) {
 }
 
 function changeScore(team, delta) {
-  const game = state.currentGame;
+  const matchState = currentScoreState();
+  const game = matchState.currentGame;
 
   if (gameWinner(game) && delta > 0) {
     showToast("本局已結束，如需修正請按 −1");
     return;
   }
 
-  const current = Number(state.scores[team][game] ?? 0);
-  state.scores[team][game] = Math.min(SCORE_CAP, Math.max(0, current + delta));
+  const current = Number(matchState.scores[team][game] ?? 0);
+  matchState.scores[team][game] = Math.min(SCORE_CAP, Math.max(0, current + delta));
 
   if (delta > 0 && gameWinner(game) && game === 1) {
-    state.currentGame = 2;
+    matchState.currentGame = 2;
     showToast("第 1 局結束，已切換到第 2 局");
   }
 
@@ -173,24 +290,52 @@ function changeScore(team, delta) {
 }
 
 function selectGame(game) {
-  state.currentGame = game;
+  currentScoreState().currentGame = game;
   render();
   save();
 }
 
+function selectScheduledMatch(matchId) {
+  const nextMatch = schedule.find((match) => match.id === matchId);
+  if (!nextMatch || nextMatch.id === state.currentMatchId) return;
+
+  state.currentMatchId = nextMatch.id;
+  currentScoreState();
+  render();
+  save();
+  showToast(`已切換到第 ${nextMatch.number} 場`);
+}
+
+function moveScheduledMatch(offset) {
+  const index = schedule.findIndex((match) => match.id === currentRoster().id);
+  const next = schedule[index + offset];
+  if (next) selectScheduledMatch(next.id);
+}
+
 function clearScores() {
+  const matchState = currentScoreState();
   const hasScore = ["A", "B"].some((team) =>
-    [1, 2].some((game) => state.scores[team][game] !== null)
+    [1, 2].some((game) => matchState.scores[team][game] !== null)
   );
   if (!hasScore) return;
 
-  const confirmed = confirm("確定要清空白隊與藍隊的全部比分嗎？");
+  const roster = currentRoster();
+  const confirmed = confirm(`確定要清空第 ${roster.number} 場的全部比分嗎？`);
   if (!confirmed) return;
 
-  state = defaultState();
+  state.matches[roster.id] = emptyMatchState();
   render();
   save();
-  showToast("比分已清空，可以開始下一場");
+  showToast(`第 ${roster.number} 場比分已清空`);
+}
+
+function populateSchedulePicker() {
+  for (const match of schedule) {
+    const option = document.createElement("option");
+    option.value = match.id;
+    option.textContent = `第 ${match.number} 場｜${match.type}｜${displayName(match.teamA)} vs ${displayName(match.teamB)}`;
+    $("matchSelect").append(option);
+  }
 }
 
 function bindControls() {
@@ -199,6 +344,9 @@ function bindControls() {
   $("plusB").addEventListener("click", () => changeScore("B", 1));
   $("minusB").addEventListener("click", () => changeScore("B", -1));
   $("clearButton").addEventListener("click", clearScores);
+  $("matchSelect").addEventListener("change", (event) => selectScheduledMatch(event.target.value));
+  $("previousMatch").addEventListener("click", () => moveScheduledMatch(-1));
+  $("nextMatch").addEventListener("click", () => moveScheduledMatch(1));
 
   document.querySelectorAll("[data-pick-game]").forEach((button) => {
     button.addEventListener("click", () => selectGame(Number(button.dataset.pickGame)));
@@ -228,7 +376,7 @@ async function connectFirebase() {
     const db = database.getDatabase(app);
     database.goOnline(db);
     dbApi = database;
-    roomRef = database.ref(db, `matches/${matchId}`);
+    roomRef = database.ref(db, `matches/${roomId}`);
 
     database.onValue(roomRef, (snapshot) => {
       const remote = snapshot.val();
@@ -255,6 +403,7 @@ async function connectFirebase() {
   }
 }
 
+populateSchedulePicker();
 if (displayOnly) document.body.classList.add("displayOnly");
 if (!displayOnly) bindControls();
 render();
