@@ -192,7 +192,9 @@ function render() {
   const endsSwapped = matchState.endsSwapped[game];
   const needsChangeEnds = !endsSwapped && !gameWinner(game) &&
     Math.max(matchState.scores.A[game] ?? 0, matchState.scores.B[game] ?? 0) >= CHANGE_ENDS_SCORE;
-  $("scoreboard").classList.toggle("endsSwapped", endsSwapped);
+  const teamControls = $("teamControls");
+  const firstControl = $(endsSwapped ? "blackControl" : "blueControl");
+  if (teamControls.firstElementChild !== firstControl) teamControls.prepend(firstControl);
   $("swapEnds").setAttribute("aria-pressed", String(endsSwapped));
   $("changeEndsStatus").textContent = endsSwapped
     ? `第 ${game} 局已換邊`
