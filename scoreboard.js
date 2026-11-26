@@ -9,8 +9,8 @@ const firebaseConfig = {
   measurementId: "G-HFQG0FBYH6"
 };
 
-const TARGET_SCORE = 15;
-const SCORE_CAP = 17;
+const TARGET_SCORE = 21;
+const CHANGE_ENDS_SCORE = 11;
 const $ = (id) => document.getElementById(id);
 const env = window.SCOREBOARD_ENV || {};
 
@@ -49,7 +49,7 @@ function parseSchedule(value) {
 
 const schedule = parseSchedule(env.MATCH_SCHEDULE);
 if (!schedule.length) {
-  schedule.push({ id: "1", number: "1", type: "羽球", teamA: "白隊", teamB: "藍隊" });
+  schedule.push({ id: "1", number: "1", type: "羽球", teamA: "藍隊", teamB: "黑隊" });
 }
 
 const configuredMatchId = safeScheduleId(env.CURRENT_MATCH, schedule[0].id);
@@ -75,7 +75,8 @@ function emptyMatchState() {
       A: { 1: null, 2: null },
       B: { 1: null, 2: null }
     },
-    currentGame: 1
+    currentGame: 1,
+    endsSwapped: { 1: false, 2: false }
   };
 }
 
@@ -92,7 +93,7 @@ function scoreValue(value) {
   if (value === null || value === undefined || value === "" || Number.isNaN(Number(value))) {
     return null;
   }
-  return Math.min(SCORE_CAP, Math.max(0, Math.trunc(Number(value))));
+  return Math.min(TARGET_SCORE, Math.max(0, Math.trunc(Number(value))));
 }
 
 function normalizeMatchState(value) {
@@ -103,6 +104,7 @@ function normalizeMatchState(value) {
       A: { 1: scoreValue(scoreSource.A?.[1]), 2: scoreValue(scoreSource.A?.[2]) },
       B: { 1: scoreValue(scoreSource.B?.[1]), 2: scoreValue(scoreSource.B?.[2]) }
     },
+    endsSwapped: { 1: source.endsSwapped?.[1] === true, 2: source.endsSwapped?.[2] === true },
     currentGame: Math.min(2, Math.max(1, Number(source.currentGame ?? source.currentSet) || 1))
   };
 }
@@ -167,9 +169,7 @@ function gameWinner(gameNumber) {
   const scores = currentScoreState().scores;
   const a = Number(scores.A[gameNumber] ?? 0);
   const b = Number(scores.B[gameNumber] ?? 0);
-  const high = Math.max(a, b);
-  const finished = high === SCORE_CAP || (high >= TARGET_SCORE && Math.abs(a - b) >= 2);
-  if (!finished || a === b) return null;
+  if (Math.max(a, b) < TARGET_SCORE || a === b) return null;
   return a > b ? "A" : "B";
 }
 
@@ -188,6 +188,15 @@ function formatScore(value) {
 function render() {
   const roster = currentRoster();
   const matchState = currentScoreState();
+  const game = matchState.currentGame;
+  const endsSwapped = matchState.endsSwapped[game];
+  const needsChangeEnds = !endsSwapped && !gameWinner(game) &&
+    Math.max(matchState.scores.A[game] ?? 0, matchState.scores.B[game] ?? 0) >= CHANGE_ENDS_SCORE;
+  $("scoreboard").classList.toggle("endsSwapped", endsSwapped);
+  $("swapEnds").setAttribute("aria-pressed", String(endsSwapped));
+  $("changeEndsStatus").textContent = endsSwapped
+    ? `第 ${game} 局已換邊`
+    : needsChangeEnds ? `第 ${game} 局已達 11 分，請換邊` : "";
   const total = totals();
   const teamA = displayName(roster.teamA);
   const teamB = displayName(roster.teamB);
@@ -278,13 +287,21 @@ function changeScore(team, delta) {
   }
 
   const current = Number(matchState.scores[team][game] ?? 0);
-  matchState.scores[team][game] = Math.min(SCORE_CAP, Math.max(0, current + delta));
+  matchState.scores[team][game] = Math.min(TARGET_SCORE, Math.max(0, current + delta));
 
   if (delta > 0 && gameWinner(game) && game === 1) {
     matchState.currentGame = 2;
     showToast("第 1 局結束，已切換到第 2 局");
   }
 
+  render();
+  save();
+}
+
+function swapEnds() {
+  const matchState = currentScoreState();
+  const game = matchState.currentGame;
+  matchState.endsSwapped[game] = !matchState.endsSwapped[game];
   render();
   save();
 }
@@ -316,7 +333,7 @@ function clearScores() {
   const matchState = currentScoreState();
   const hasScore = ["A", "B"].some((team) =>
     [1, 2].some((game) => matchState.scores[team][game] !== null)
-  );
+  ) || Object.values(matchState.endsSwapped).some(Boolean);
   if (!hasScore) return;
 
   const roster = currentRoster();
@@ -343,6 +360,7 @@ function bindControls() {
   $("minusA").addEventListener("click", () => changeScore("A", -1));
   $("plusB").addEventListener("click", () => changeScore("B", 1));
   $("minusB").addEventListener("click", () => changeScore("B", -1));
+  $("swapEnds").addEventListener("click", swapEnds);
   $("clearButton").addEventListener("click", clearScores);
   $("matchSelect").addEventListener("change", (event) => selectScheduledMatch(event.target.value));
   $("previousMatch").addEventListener("click", () => moveScheduledMatch(-1));

@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#f5f3ed" />
-  <meta name="description" content="白隊對藍隊羽球兩局總分制直播計分板" />
-  <title>白隊 vs 藍隊｜羽球計分板</title>
+  <meta name="description" content="藍隊對黑隊羽球兩局總分制直播計分板" />
+  <title>藍隊 vs 黑隊｜羽球計分板</title>
   <style>
     :root {
       color-scheme: light;
@@ -15,13 +15,13 @@
       --line: rgba(35, 51, 72, .14);
       --text: #172235;
       --muted: #6f7b8c;
-      --white: #f6e7ad;
-      --white-soft: #fffaf0;
-      --white-deep: #d3aa35;
-      --white-text: #101827;
       --blue: #c8eafa;
       --blue-soft: #eef9ff;
       --blue-deep: #4f9fcf;
+      --team-text: #101827;
+      --black: #253044;
+      --black-soft: #3d485b;
+      --black-deep: #a8b3c5;
       --lime: #f0cd62;
       --danger: #ff7381;
       --radius: 22px;
@@ -98,8 +98,11 @@
     .matchType { background: #fff; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
 
     .matchup {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: flex-end;
       min-width: 0;
-      text-align: right;
       font-size: clamp(18px, 3vw, 27px);
       font-weight: 950;
       line-height: 1.25;
@@ -143,14 +146,14 @@
       border-right: 1px solid var(--line);
     }
 
-    .team.white {
-      color: var(--white-text);
-      background: linear-gradient(90deg, var(--white-soft), var(--white));
+    .team.blue {
+      color: var(--team-text);
+      background: linear-gradient(90deg, var(--blue-soft), var(--blue));
     }
 
-    .team.blue {
-      color: var(--white-text);
-      background: linear-gradient(90deg, var(--blue-soft), var(--blue));
+    .team.black {
+      color: #fff;
+      background: linear-gradient(90deg, var(--black-soft), var(--black));
     }
 
     .teamMark {
@@ -160,8 +163,8 @@
       border-radius: 99px;
     }
 
-    .white .teamMark { background: var(--white-deep); }
     .blue .teamMark { background: var(--blue-deep); }
+    .black .teamMark { background: var(--black-deep); }
 
     .teamName {
       overflow: hidden;
@@ -204,6 +207,19 @@
     .total.leader { color: #a87800; }
 
     .scoreGrid > :nth-child(-n+4) { border-top: 0; }
+    .endsSwapped .scoreGrid > .blueSide,
+    .endsSwapped #matchupA { order: 1; }
+    .endsSwapped #matchupB { order: -1; }
+
+    .changeEnds {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 12px;
+    }
+
+    .changeEndsStatus { font-weight: 700; }
+    #swapEnds[aria-pressed="true"] { background: var(--blue); }
 
     .controls {
       margin-top: 18px;
@@ -305,14 +321,14 @@
       font-weight: 950;
     }
 
-    .whiteControl .controlTitle {
-      color: var(--white-text);
-      background: var(--white);
+    .blueControl .controlTitle {
+      color: var(--team-text);
+      background: var(--blue);
     }
 
-    .blueControl .controlTitle {
-      color: var(--white-text);
-      background: var(--blue);
+    .blackControl .controlTitle {
+      color: #fff;
+      background: var(--black);
     }
 
     .currentValue {
@@ -332,7 +348,7 @@
       border: 1px solid var(--line);
       border-radius: 15px;
       background: var(--panel-light);
-      font-size: clamp(27px, 5vw, 42px);
+      font-size: clamp(20px, 4.5vw, 36px);
       font-weight: 950;
       cursor: pointer;
       transition: transform .08s ease;
@@ -345,8 +361,11 @@
       background: var(--lime);
     }
 
-    .whiteControl .plus { background: var(--white); }
     .blueControl .plus { background: var(--blue); }
+    .blackControl .plus {
+      color: #fff;
+      background: var(--black);
+    }
 
     .minus { color: #536174; }
 
@@ -413,7 +432,7 @@
       .scoreGrid { grid-template-columns: minmax(115px, 1.45fr) repeat(3, minmax(62px, 1fr)); }
       .team, .score, .total { min-height: 74px; }
       .matchHeader { grid-template-columns: 1fr; gap: 8px; padding: 12px; }
-      .matchup { text-align: left; }
+      .matchup { justify-content: flex-start; }
       .team { padding: 8px 11px; }
       .teamMark { width: 4px; height: 34px; margin-right: 8px; }
       .teamName { font-size: clamp(20px, 6vw, 30px); }
@@ -434,16 +453,16 @@
 </head>
 <body>
   <main class="app">
-    <section class="scoreboard" aria-label="白隊對藍隊羽球計分板">
+    <section id="scoreboard" class="scoreboard" aria-label="藍隊對黑隊羽球計分板">
       <header class="matchHeader">
         <div class="matchMeta">
           <span id="matchNumber" class="matchNumber">第 1 場</span>
           <span id="matchType" class="matchType">男雙</span>
         </div>
         <div class="matchup" aria-label="目前對戰組合">
-          <span id="matchupA">楊桃、彭博</span>
+          <span id="matchupA">彭博、楊桃</span>
           <span class="versus">VS</span>
-          <span id="matchupB">胖、萊恩</span>
+          <span id="matchupB">政翰、正宇</span>
         </div>
       </header>
       <div class="scoreGrid">
@@ -452,21 +471,21 @@
         <div class="gridHead gameHead" data-game="2">第 2 局</div>
         <div class="gridHead">總分</div>
 
-        <div class="team white">
+        <div class="team blue blueSide">
           <span class="teamMark"></span>
-          <span id="teamNameA" class="teamName">楊桃、彭博</span>
+          <span id="teamNameA" class="teamName">彭博、楊桃</span>
         </div>
-        <button id="A1" class="score empty current" data-game="1" aria-label="白隊第一局分數">–</button>
-        <button id="A2" class="score empty" data-game="2" aria-label="白隊第二局分數">–</button>
-        <div id="totalA" class="total" aria-label="白隊兩局總分">0</div>
+        <button id="A1" class="blueSide score empty current" data-game="1" aria-label="藍隊第一局分數">–</button>
+        <button id="A2" class="blueSide score empty" data-game="2" aria-label="藍隊第二局分數">–</button>
+        <div id="totalA" class="blueSide total" aria-label="藍隊兩局總分">0</div>
 
-        <div class="team blue">
+        <div class="team black">
           <span class="teamMark"></span>
-          <span id="teamNameB" class="teamName">胖、萊恩</span>
+          <span id="teamNameB" class="teamName">政翰、正宇</span>
         </div>
-        <button id="B1" class="score empty current" data-game="1" aria-label="藍隊第一局分數">–</button>
-        <button id="B2" class="score empty" data-game="2" aria-label="藍隊第二局分數">–</button>
-        <div id="totalB" class="total" aria-label="藍隊兩局總分">0</div>
+        <button id="B1" class="blackSide score empty current" data-game="1" aria-label="黑隊第一局分數">–</button>
+        <button id="B2" class="blackSide score empty" data-game="2" aria-label="黑隊第二局分數">–</button>
+        <div id="totalB" class="blackSide total" aria-label="黑隊兩局總分">0</div>
       </div>
     </section>
 
@@ -485,26 +504,31 @@
         <button class="gameButton" data-pick-game="2">第 2 局</button>
       </div>
 
+      <div class="changeEnds">
+        <button id="swapEnds" class="matchNavButton" type="button" aria-pressed="false">換邊</button>
+        <span id="changeEndsStatus" class="changeEndsStatus" role="status"></span>
+      </div>
+
       <div class="teamControls">
-        <article class="teamControl whiteControl">
+        <article class="teamControl blueControl">
           <div class="controlTitle">
-            <span id="controlTeamA">楊桃、彭博</span>
+            <span id="controlTeamA">彭博、楊桃</span>
             <span id="currentA" class="currentValue">0</span>
           </div>
           <div class="buttonRow">
-            <button id="minusA" class="scoreButton minus" aria-label="白隊減一分">−1</button>
-            <button id="plusA" class="scoreButton plus" aria-label="白隊加一分">+1</button>
+            <button id="minusA" class="scoreButton minus" aria-label="藍隊減一分">減分 −1</button>
+            <button id="plusA" class="scoreButton plus" aria-label="藍隊加一分">加分 +1</button>
           </div>
         </article>
 
-        <article class="teamControl blueControl">
+        <article class="teamControl blackControl">
           <div class="controlTitle">
-            <span id="controlTeamB">胖、萊恩</span>
+            <span id="controlTeamB">政翰、正宇</span>
             <span id="currentB" class="currentValue">0</span>
           </div>
           <div class="buttonRow">
-            <button id="minusB" class="scoreButton minus" aria-label="藍隊減一分">−1</button>
-            <button id="plusB" class="scoreButton plus" aria-label="藍隊加一分">+1</button>
+            <button id="minusB" class="scoreButton minus" aria-label="黑隊減一分">減分 −1</button>
+            <button id="plusB" class="scoreButton plus" aria-label="黑隊加一分">加分 +1</button>
           </div>
         </article>
       </div>
